@@ -1,0 +1,32 @@
+[package]
+name = "datamask"
+version = "0.1.0"
+edition = "2021"
+description = "Detect and anonymize PII in CSV and JSON files"
+license = "MIT"
+repository = "https://github.com/EdgarOrtegaRamirez/datamask"
+keywords = ["pii", "anonymize", "privacy", "csv", "json"]
+categories = ["command-line-utilities", "data-structures"]
+
+[[bin]]
+name = "datamask"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+csv = "1.3"
+clap = { version = "4.5", features = ["derive"] }
+regex = "1.10"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["serde", "v4"] }
+sha2 = "0.10"
+color-eyre = "0.6"
+thiserror = "2.0"
+anyhow = "1.0"
+indicatif = "0.17"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile = "3.11"
