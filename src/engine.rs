@@ -1,18 +1,16 @@
 //! Core engine that orchestrates detection and masking
 
 use crate::cli::App;
-use crate::pii::{DetectionLevel, PIIHit, scan_line};
 use crate::mask::MaskStrategy;
+use crate::pii::{scan_line, DetectionLevel, PIIHit};
 use anyhow::{Context, Result};
 use std::fs;
 use std::io::{self, BufRead, BufWriter, Write};
 
 /// Run the main datamask workflow
 pub fn run(app: &App) -> Result<()> {
-    let level = DetectionLevel::from_str(&app.detection)
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
-    let strategy = MaskStrategy::from_str(&app.strategy)
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let level = DetectionLevel::from_str(&app.detection).map_err(|e| anyhow::anyhow!("{}", e))?;
+    let strategy = MaskStrategy::from_str(&app.strategy).map_err(|e| anyhow::anyhow!("{}", e))?;
 
     let input_text = read_input(&app.input)?;
 
@@ -31,11 +29,7 @@ pub fn run(app: &App) -> Result<()> {
 }
 
 /// Run in scan-only mode — detect but don't mask
-fn run_scan(
-    input: &str,
-    level: &DetectionLevel,
-    as_json: bool,
-) -> Result<()> {
+fn run_scan(input: &str, level: &DetectionLevel, as_json: bool) -> Result<()> {
     let mut total_hits: Vec<PIIHit> = Vec::new();
 
     for (i, line) in input.lines().enumerate() {
@@ -68,7 +62,10 @@ fn run_scan(
         let mut by_category: std::collections::HashMap<String, Vec<&PIIHit>> =
             std::collections::HashMap::new();
         for hit in &total_hits {
-            by_category.entry(hit.category.clone()).or_default().push(hit);
+            by_category
+                .entry(hit.category.clone())
+                .or_default()
+                .push(hit);
         }
 
         for (category, hits) in &by_category {
@@ -199,10 +196,7 @@ fn process_json(
                 let headers: Vec<String> = record.keys().cloned().collect();
                 writeln!(writer, "{}", headers.join(","))?;
             }
-            let values: Vec<String> = record
-                .values()
-                .map(|v| v.to_string())
-                .collect();
+            let values: Vec<String> = record.values().map(|v| v.to_string()).collect();
             writeln!(writer, "{}", values.join(","))?;
         }
     } else {
@@ -217,12 +211,7 @@ fn process_json(
 }
 
 /// Mask a single value based on its context key and PII detection
-fn mask_field(
-    value: &str,
-    key: &str,
-    level: &DetectionLevel,
-    strategy: &MaskStrategy,
-) -> String {
+fn mask_field(value: &str, key: &str, level: &DetectionLevel, strategy: &MaskStrategy) -> String {
     if value.is_empty() {
         return value.to_string();
     }
@@ -230,8 +219,17 @@ fn mask_field(
     let key_lower = key.to_lowercase();
 
     let sensitive_keys = [
-        "email", "phone", "ssn", "password", "secret", "token",
-        "api_key", "credit_card", "address", "name", "date_of_birth",
+        "email",
+        "phone",
+        "ssn",
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "credit_card",
+        "address",
+        "name",
+        "date_of_birth",
     ];
 
     if sensitive_keys.iter().any(|k| key_lower.contains(k)) {
@@ -274,9 +272,21 @@ fn mask_value(
 
             let key_lower = key.to_lowercase();
             let sensitive_keys = [
-                "email", "phone", "ssn", "password", "secret", "token",
-                "api_key", "credit_card", "address", "name", "date_of_birth",
-                "birth_date", "dob", "mobilenumber", "mobileno",
+                "email",
+                "phone",
+                "ssn",
+                "password",
+                "secret",
+                "token",
+                "api_key",
+                "credit_card",
+                "address",
+                "name",
+                "date_of_birth",
+                "birth_date",
+                "dob",
+                "mobilenumber",
+                "mobileno",
             ];
 
             if sensitive_keys.iter().any(|k| key_lower.contains(k)) {
@@ -316,9 +326,7 @@ fn mask_value(
 }
 
 /// Flatten a JSON value into a list of flat maps
-fn flatten_json(
-    value: &serde_json::Value,
-) -> Vec<serde_json::Map<String, serde_json::Value>> {
+fn flatten_json(value: &serde_json::Value) -> Vec<serde_json::Map<String, serde_json::Value>> {
     match value {
         serde_json::Value::Array(arr) => {
             if arr.is_empty() {
@@ -326,20 +334,18 @@ fn flatten_json(
             }
             if let Some(first) = arr.first() {
                 match first {
-                    serde_json::Value::Object(_) => {
-                        arr.iter()
-                            .filter_map(|v| {
-                                if let serde_json::Value::Object(obj) = v {
-                                    Some(obj.clone())
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect()
-                    }
+                    serde_json::Value::Object(_) => arr
+                        .iter()
+                        .filter_map(|v| {
+                            if let serde_json::Value::Object(obj) = v {
+                                Some(obj.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
                     _ => {
-                        let mut maps: Vec<serde_json::Map<String, serde_json::Value>> =
-                            Vec::new();
+                        let mut maps: Vec<serde_json::Map<String, serde_json::Value>> = Vec::new();
                         for v in arr.iter() {
                             let mut map = serde_json::Map::new();
                             map.insert("value".to_string(), v.clone());
@@ -377,8 +383,7 @@ fn get_output_writer(path: &Option<std::path::PathBuf>) -> Result<Box<dyn Write>
 fn read_input(path: &Option<std::path::PathBuf>) -> Result<String> {
     match path {
         Some(p) => {
-            fs::read_to_string(p)
-                .with_context(|| format!("Failed to read input file: {:?}", p))
+            fs::read_to_string(p).with_context(|| format!("Failed to read input file: {:?}", p))
         }
         None => {
             let stdin = io::stdin();

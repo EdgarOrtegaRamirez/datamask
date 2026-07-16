@@ -54,7 +54,10 @@ impl DetectionLevel {
             PIIPattern {
                 name: "ipv4",
                 description: "IPv4 address",
-                regex: Regex::new(r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b").unwrap(),
+                regex: Regex::new(
+                    r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b",
+                )
+                .unwrap(),
                 replacement: "[IP_ADDRESS]",
                 category: "network",
             },
@@ -127,6 +130,7 @@ pub struct PIIPattern {
     pub name: &'static str,
     pub description: &'static str,
     pub regex: Regex,
+    #[expect(dead_code)]
     pub replacement: &'static str,
     pub category: &'static str,
 }
@@ -165,6 +169,7 @@ pub fn scan_line(text: &str, level: &DetectionLevel, line_number: usize) -> Vec<
 }
 
 /// Count how many unique PII types are in the text
+#[expect(dead_code)]
 pub fn count_types(text: &str, level: &DetectionLevel) -> HashMap<String, usize> {
     let mut counts = HashMap::new();
     let hits = scan_line(text, level, 0);
@@ -177,6 +182,7 @@ pub fn count_types(text: &str, level: &DetectionLevel) -> HashMap<String, usize>
 }
 
 /// Check if text contains any PII
+#[expect(dead_code)]
 pub fn has_pii(text: &str, level: &DetectionLevel) -> bool {
     !scan_line(text, level, 0).is_empty()
 }

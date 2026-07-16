@@ -33,7 +33,7 @@ impl MaskStrategy {
                 hasher.update(value.as_bytes());
                 let result = hasher.finalize();
                 let hex: String = result.iter().map(|b| format!("{:02x}", b)).collect();
-                format!("[HASH:{}...{}]", &hex[..8], &hex[hex.len()-8..])
+                format!("[HASH:{}...{}]", &hex[..8], &hex[hex.len() - 8..])
             }
             Self::Redact => {
                 let len = value.len().max(8);
@@ -119,8 +119,14 @@ mod tests {
 
     #[test]
     fn test_from_str_case_insensitive() {
-        assert_eq!(MaskStrategy::from_str("REPLACE").unwrap(), MaskStrategy::Replace);
+        assert_eq!(
+            MaskStrategy::from_str("REPLACE").unwrap(),
+            MaskStrategy::Replace
+        );
         assert_eq!(MaskStrategy::from_str("HASH").unwrap(), MaskStrategy::Hash);
-        assert_eq!(MaskStrategy::from_str("REDACT").unwrap(), MaskStrategy::Redact);
+        assert_eq!(
+            MaskStrategy::from_str("REDACT").unwrap(),
+            MaskStrategy::Redact
+        );
     }
 }
