@@ -101,6 +101,20 @@ impl DetectionLevel {
                 replacement: "[IP_ADDRESS]",
                 category: "network",
             },
+            PIIPattern {
+                name: "aws_access_key",
+                description: "AWS Access Key ID",
+                regex: Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap(),
+                replacement: "[AWS_KEY]",
+                category: "credential",
+            },
+            PIIPattern {
+                name: "github_token",
+                description: "GitHub Personal Access Token",
+                regex: Regex::new(r"\bghp_[0-9a-zA-Z]{36}\b").unwrap(),
+                replacement: "[GITHUB_TOKEN]",
+                category: "credential",
+            },
         ]
     }
 
@@ -185,4 +199,56 @@ pub fn count_types(text: &str, level: &DetectionLevel) -> HashMap<String, usize>
 #[expect(dead_code)]
 pub fn has_pii(text: &str, level: &DetectionLevel) -> bool {
     !scan_line(text, level, 0).is_empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_aws_key_detection() {
+        let text = "My AWS key is AKIAIOSFODNN7EXAMPLE";
+        let hits = scan_line(text, &DetectionLevel::Moderate, 1);
+        let aws_hits: Vec<_> = hits.iter().filter(|h| h.pattern_name == "aws_access_key").collect();
+        assert_eq!(aws_hits.len(), 1);
+        assert_eq!(aws_hits[0].value, "AKIAIOSFODNN7EXAMPLE");
+    }
+
+    #[test]
+    fn test_github_token_detection() {
+        let text = "Token: ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij";
+        let hits = scan_line(text, &DetectionLevel::Moderate, 1);
+        let token_hits: Vec<_> = hits.iter().filter(|h| h.pattern_name == "github_token").collect();
+        assert_eq!(token_hits.len(), 1);
+        assert_eq!(token_hits[0].value, "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij");
+    }
+
+    #[test]
+    fn test_credential_category() {
+        let text = "Key: AKIAIOSFODNN7EXAMPLE Token: ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij";
+        let hits = scan_line(text, &DetectionLevel::Moderate, 1);
+        let credential_hits: Vec<_> = hits.iter().filter(|h| h.category == "credential").collect();
+        assert_eq!(credential_hits.len(), 2);
+    }
+
+    #[test]
+    fn test_no_false_positives_moderate() {
+        let text = "Just a regular paragraph with no PII at all.";
+        let hits = scan_line(text, &DetectionLevel::Moderate, 1);
+        assert!(hits.is_empty());
+    }
+
+    #[test]
+    fn test_strict_only_basic_patterns() {
+        let level = DetectionLevel::Strict;
+        let patterns = level.patterns();
+        let names: Vec<_> = patterns.iter().map(|p| p.name).collect();
+        assert!(names.contains(&"email"));
+        assert!(names.contains(&"ipv4"));
+        assert!(names.contains(&"credit_card"));
+        assert!(names.contains(&"ssn"));
+        assert!(names.contains(&"phone_us"));
+        assert!(!names.contains(&"aws_access_key"));
+        assert!(!names.contains(&"github_token"));
+    }
 }
